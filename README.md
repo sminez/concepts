@@ -65,6 +65,11 @@ fmap(times2, {str(n): n for n in range(1, 6)})
 fmap(times2, {str(n): n for n in range(1, 6)}.items())
 >>> {'33': 3, '11': 1, '44': 4, '22': 2, '55': 5}
 
+
+# And finally, pass in an iterator, get out an iterator
+fmap(times2, iter([1,2,3,4,5]))
+>>> <generator object _fmap.<locals>.<genexpr> at 0x7f1511028eb8>
+
 # fmap applied to None is None...are you surprised?
 fmap(times2, None)
 >>>

@@ -1,7 +1,11 @@
 # fmap.py - a single dispatch version of fmap for Python3
 
-fmap is an operation on Functors.
+*While there are multiple Haskellesque 'lets put monads in Python!' style libraries out there, most don't seem to focus
+on taking the nice bits of Haskell's functional approach and giving them a nice Pythonic interface.<br> `fmap.py` is a very simple take on `fmap` that lets you remove some unnecesary boiler plate when you are applying a function to each
+element of a collection. I hope you like it!*
 
+
+### They say fmap is an operation on Functors...
 "What's a Functor?!", I hear you cry.
 
 Well, the Haskell docs have this to say on the matter:
@@ -20,7 +24,7 @@ Of course...thanks for that. Now I know exactly what's going on...
 
 The important part is the second half of the first sentence: `"generalizing the map function on lists."`
 
-And that's all there is to it!
+### And that's all there is to it!
 
 Python's map returns an iterator that requires you to some boiler plate to get a concrete data structure out again.<br>
 This is fine (if annoying and ugly) when you know - with 100% certainty - what you are mapping over. However, if<br>
@@ -28,7 +32,7 @@ the argument you are passing to map could be one of several thing then you are i
 
 What data structure do you build at the end?
 
-fmap ensures that - for the defined datatypes - you get back what you put in:
+### fmap ensures that - for the defined datatypes - you get back what you put in:
 ```
 def times2(x):
     return x * 2
@@ -66,7 +70,7 @@ fmap(times2, None)
 >>>
 ```
 
-If you want to use a different data type (including your own user defined classes!) all you need to do is the following:
+#### If you want to use a different data type (including your own user defined classes!) all you need to do is the following:
 
 ```
 from fmap import fmap, instance
@@ -83,4 +87,3 @@ You may now fmap away to your heart's content.
 
 See the awesome and fun [LearnYouAHaskell](http://learnyouahaskell.com/functors-applicative-functors-and-monoids)
 for some more details on the Haskell implementation and theory behind functors if you're into that sort of thing.
-    

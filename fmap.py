@@ -1,5 +1,6 @@
 from functools import singledispatch
 from types import GeneratorType
+from collections import Iterator
 
 
 def instance(sd, func, arg_type):
@@ -30,10 +31,15 @@ def instance(sd, func, arg_type):
 @singledispatch
 def _fmap(col, func):
     '''
-    Map a function over a container: default to returning a list
-    if no definition can be found for the passed collection type.
+    Map a function over the elements of a container.
+    Default to returning an iterator when passed an iterator or
+    a list if no specific definition can be found for the passed
+    collection type.
     '''
-    return [func(element) for element in col]
+    if isinstance(col, Iterator):
+        return (func(element) for element in col)
+    else:
+        return [func(element) for element in col]
 
 
 @_fmap.register(tuple)

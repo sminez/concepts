@@ -1,4 +1,5 @@
 from functools import singledispatch
+from types import GeneratorType
 
 
 def instance(sd, func, arg_type):

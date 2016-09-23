@@ -26,7 +26,7 @@ def instance(sd, func, arg_type):
                 )
 
 
-@ftools.singledispatch
+@singledispatch
 def _fmap(col, func):
     '''
     Map a function over a container: default to returning a list

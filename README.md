@@ -78,13 +78,19 @@ fmap(times2, None)
 #### If you want to use a different data type (including your own user defined classes!) all you need to do is the following:
 
 ```
-from fmap import fmap, instance
+from fmap import fmap, fmap_for
 
 @fmap_for(my_type)
 def my_fmap_implementation(my_type, func):
     # define how to apply func to each element of my_type
+```
 
-# Or without the decorator...
+Or if you prefer using a function instead of a decorator (which also allows you to
+register pre-defined functions):
+
+```
+from fmap import fmap, instance
+
 instance(fmap, my_fmap_implementation, my_type)
 ```
 

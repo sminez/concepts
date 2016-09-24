@@ -80,9 +80,11 @@ fmap(times2, None)
 ```
 from fmap import fmap, instance
 
+@fmap_for(my_type)
 def my_fmap_implementation(my_type, func):
     # define how to apply func to each element of my_type
 
+# Or without the decorator...
 instance(fmap, my_fmap_implementation, my_type)
 ```
 

@@ -49,24 +49,33 @@ fmap(times2, {1,2,3,4,5})
 fmap(times2, (1,2,3,4,5))
 >>> (2, 4, 6, 8, 10)
 
-# Even bytes! (also bytearrays)
-fmap(times2, bytes(range(1, 6)))
->>> b'\x02\x04\x06\x08\n'
-
 # Strings are a sequence so we can fmap over them as well
 fmap(times2, "ffmap me!")
 >>> 'ffmmaapp  mmee!!'
 
-# Dicts are fiddly so there are two ways to do it: fmap over the values
+# Even bytes! (also bytearrays)
+fmap(times2, bytes(range(1, 6)))
+>>> b'\x02\x04\x06\x08\n'
+
+# Dicts are fiddly so there are some helpers.
+# By default you fmap over the values:
 fmap(times2, {str(n): n for n in range(1, 6)})
 >>> {'2': 4, '1': 2, '5': 10, '3': 6, '4': 8}
 
-# Or fmap over the keys
-fmap(times2, {str(n): n for n in range(1, 6)}.items())
+# To fmap over the keys, wrap the function in `on_keys`:
+fmap(on_keys(times2), {str(n): n for n in range(1, 6)})
 >>> {'33': 3, '11': 1, '44': 4, '22': 2, '55': 5}
 
+# Or, if the function takes two values and returns two values you can use it
+# directly:
+def values_are_awesome(a, b):
+    return a, 'Awesome!'
 
-# And finally, pass in an iterator, get out an iterator
+fmap(values_are_awesome, {str(n): n for n in range(1, 6)})
+>>> {'2': 'Awesome!', '1': 'Awesome!', '5': 'Awesome!', '3': 'Awesome!', '4': 'Awesome!'}
+
+
+# Pass in an iterator, range or generator and you'll get out a new generator
 fmap(times2, iter([1,2,3,4,5]))
 >>> <generator object _fmap.<locals>.<genexpr> at 0x7f1511028eb8>
 
@@ -75,14 +84,25 @@ fmap(times2, None)
 >>>
 ```
 
-#### If you want to use a different data type (including your own user defined classes!) all you need to do is the following:
+#### If you want to use a different data type (including your own user defined classes!) all you need to do is the following. We'll use a (very) simple binary tree class as our example:
 
 ```
 from fmap import fmap, fmap_for
 
-@fmap_for(my_type)
-def my_fmap_implementation(my_type, func):
-    # define how to apply func to each element of my_type
+
+class Btree:
+    def __init__(self, val, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+    def __repr__(self):
+        return str((self.val, self.left, self.right))
+
+
+@fmap_for(Btree)
+def _fmap_btree(func, t):
+    return Btree(func(t.val), fmap(func, t.left), fmap(func, t.right))
 ```
 
 Or if you prefer using a function instead of a decorator (which also allows you to
@@ -91,7 +111,7 @@ register pre-defined functions):
 ```
 from fmap import fmap, instance
 
-instance(fmap, my_fmap_implementation, my_type)
+instance(fmap, _fmap_btree, Btree)
 ```
 
 And that's it!
@@ -100,3 +120,7 @@ You may now fmap away to your heart's content.
 
 See the awesome and fun [LearnYouAHaskell](http://learnyouahaskell.com/functors-applicative-functors-and-monoids)
 for some more details on the Haskell implementation and theory behind functors if you're into that sort of thing.
+
+
+### A note on implementation
+Originally this was implemented using the `functools.singledispatch` decorator but that caused a couple of issues due its use of the MRO to find implementations for subclasses. As a result, I have written a (much simpler and less powerful) version that allows you to dispatch on a chosen argument index or on the types of all arguments. This can be found in dispatch.py if you are interested.

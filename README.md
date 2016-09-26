@@ -103,6 +103,19 @@ class Btree:
 @fmap_for(Btree)
 def _fmap_btree(func, t):
     return Btree(func(t.val), fmap(func, t.left), fmap(func, t.right))
+
+
+# Lets try it out!
+>>> b = Btree(4, Btree(3, Btree(2)), Btree(1, None, Btree(0)))
+>>> b
+(4, (3, (2, None, None), None), (1, None, (0, None, None)))
+>>> b.left
+(3, (2, None, None), None)
+>>> b.right
+(1, None, (0, None, None))
+
+>>> fmap(times2, b)
+(8, (6, (4, None, None), None), (2, None, (0, None, None)))
 ```
 
 Or if you prefer using a function instead of a decorator (which also allows you to

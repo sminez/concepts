@@ -92,26 +92,16 @@ def dispatch_on(index=0, func=None):
     return wrapped
 
 
-def instance(sd, func, arg_type):
+def instance(func, implementation, arg_type):
     '''
-    Register a function as the implementation of a single dispatch
-    function sd for a given type.
+    Register a function as the implementation of func for a given type.
     i.e instance(fmap, _fmap_my_type, my_type)
     
     This is an alternative to explicitly wrapping the function definition
-    in question with @sd.register(arg_type) to allow run-time
-    registration and registration of pre-defined functions.
+    in question with @func.add(arg_type) to allow run-time registration
+    and registration of pre-defined functions.
     '''
-    # Check that sd is actually a singledispatch function
-    if 'dispatch' in dir(sd):
-        sd.register(arg_type, func)
+    if 'dispatch' in dir(func):
+        func.add(arg_type, implementation)
     else:
-        # Allow for a public api on `sd` and an implementation on `_sd`
-        # as singledispatch is on the type of the first argument only
-        # which wont work for all functions.
-        try:
-            exec('_{}.register(arg_type, func)'.format(sd))
-        except:
-            raise TypeError(
-                '{} is not a single dispatch function'.format(sd)
-                )
+        raise TypeError('{} has not been decorated with `dispatch_on`.'.format(func))

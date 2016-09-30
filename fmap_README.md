@@ -33,7 +33,7 @@ the argument you are passing to map could be one of several thing then you are i
 What data structure do you build at the end?
 
 ### fmap ensures that - for the defined datatypes - you get back what you put in:
-```
+```python
 def times2(x):
     return x * 2
 
@@ -86,7 +86,7 @@ fmap(times2, None)
 
 #### If you want to use a different data type (including your own user defined classes!) all you need to do is the following. We'll use a (very) simple binary tree class as our example:
 
-```
+```python
 from pythfun import fmap, fmap_for
 
 
@@ -121,7 +121,7 @@ def _fmap_btree(func, t):
 Or if you prefer using a function instead of a decorator (which also allows you to
 register pre-defined functions):
 
-```
+```python
 from fmap import fmap, instance
 
 instance(fmap, _fmap_btree, Btree)

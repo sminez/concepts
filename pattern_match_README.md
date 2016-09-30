@@ -1,14 +1,54 @@
-# Pattern matching in Python as a context manager and decorator
+## Pattern matching in Python as a context manager and decorator
 
-There are two ways to make use of pattern_match:
-    the `pattern_match` context manager
-    the `pattern_matching` decorator
+Pattern matching is awesome. Python has tuple unpacking that can be used to
+do some simple pattern matching style operations but unless you want to get
+really involved with `try/except` and a lot of fiddling around, it's not
+as powerful as it could be.
+
+More importantly, when you get to that stage your code looks horrible!
+To quote the great Raymond:
+
+    "There must be a better way!"
 
 
-### Templates are written as tuples of variable names without commas:
-    template_example = '(a b c *d (_ f) ...)'
+### Enter `pattern_match` and `pattern_matching`
+You have a choice of using the `with patter_match(foo) as m: ...` context manager
+inside normal Python code or to decorate a function definition with the
+`@pattern_matching` decorator that allow you to match against all named parameters
+passed to the function by handling the setup of the multi-part with statement for you.
+- When using the decorator version, every function parameter gains a partner that is
+  prefixed with an underscore. (`bar` and `_bar`)
+- The parameter can be used as normal but the underscore version is a special match
+  object that can be used for pattern matching!
+  - When using the context manager, you get to set the name of the match object using
+  the `as` clause of the context manager.
 
-### Nested sub-templates are allowed and valid elements are as follows:
+Match objects are cool: you can use them as ofter as you want and they can be tested
+against types using `>=` or against match templates using `>>`.
+- When you test using `>>`, a successful match will bind the variables used in the
+  template into local scope so you can use them in the rest of your code!
+
+
+#### Templates are tuples of variable names without commas:
+In order to specify your match templates, you need to use a *(small)* DSL to describe
+the pattern you are looking for:
+
+`template_example = '(a b c *d (_ f) ...)'`
+
+The full rules are given below but the 10 second summary is as follows:
+- Templates are strings of tuples without commas (to reduce the line noise and save you
+  some key strokes).
+- A template must be a *single* string-tuple (or 'struple' if you like) but it can contain
+  arbitrary nested sub-templates. (aka 'sub-struples'...)
+- Within a template you specify variable names that must be valid Python variable names as
+  they are going to be bound following a successful match.
+  - Note that if the same name is used in multiple places, it must match the same *value*
+    each time for the match to succeed as a whole.
+- There are a couple of special elements that you can use that give you some more powerful
+  matching potential. For those, read on!
+
+
+#### Allowed values in a template and what they do
     `(...):`   A template must start and stop with parens.
                It may also include any number of nested sub-templates.
     `<var>:`   Any valid python variable name is allowed.
@@ -20,7 +60,8 @@ There are two ways to make use of pattern_match:
                unpacking.
                NOTE: You can have a maximum of one greedy variable per
                      template or sub-template.
-#### Special values
+
+#### Special values and their meanings
     `_:`       Underscore is a special element in a pattern. It denotes a
                required position in the template that must be filled but
                the result of the match is not bound. You can have any number
@@ -32,6 +73,9 @@ There are two ways to make use of pattern_match:
                i.e. `((a b) ...) >> [[1, 2], [3, 4], [5, 6]]`
                     will give: `a = [1, 3, 5]`
                                `b = [2, 4, 6]`
+
+
+## And now for an example!
 ```
 from pythfun import pattern_match
 

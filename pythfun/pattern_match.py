@@ -94,6 +94,9 @@ class Pvar:
             self.greedy_expanded = False
         self.value = None
 
+    def __repr__(self):
+        return '{} -> {}'.format(self.symbol, self.value)
+
     def __eq__(self, other):
         '''
         Compare and bind a value to the pattern variable
@@ -135,9 +138,9 @@ class Pvar:
                 # to succeed.
                 if self.value != existing:
                     raise ValueError('FAILED MATCH')
-                else:
-                    # There are no conflicts so update the match
-                    attempt[self.symbol] = self.value
+            else:
+                # There are no conflicts so update the match
+                attempt[self.symbol] = self.value
 
 
 class Template:
@@ -230,6 +233,7 @@ class Template:
         '''
         cached = []
         next_pvar, next_target = pairs.pop(0)
+
         while next_pvar is not None:
             # Keep track of the other pvars in the pattern so
             # they can be used later
@@ -237,12 +241,17 @@ class Template:
                 break
             cached.append(next_pvar)
             self.check_match(pvar, next_target)
-            next_pvar, next_target = pairs.pop(0)
+            try:
+                next_pvar, next_target = pairs.pop(0)
+            except IndexError:
+                # End of the list
+                break
+
         # Everything else is unmatched:
         # --> match the last one from the while loop first
         self.check_match(pvar, next_target)
         rem = len(list(takewhile(non_string_collection, pairs)))
-        diff = len(pairs) - len(cached) * rem
+        diff = len(pairs) - len(cached) * rem + 1
         pvar.greedy_expanded = True
         left_over_pvars = diff * [pvar] + cached
         left_over_targets = [r[1] for r in pairs]
@@ -364,3 +373,29 @@ class Match_object:
             py_object(frame),
             c_int(0)
         )
+
+if __name__ == '__main__':
+    examples = [
+        [1, 2, 3, 4, (5, 6), (7, 8), (9, 10)],
+        [1, 2, 3, 2, 1],
+        [1, 2, 3, 2, 42],
+        'exactly this'
+    ]
+
+    for example in examples:
+        print('\nTrying to match, {}'.format(example))
+
+        with pattern_match(example) as m:
+            if m >> '(*a (b c) ...)':
+                print(
+                    'This example starts with {} and then has a list'
+                    ' of pairs where the first elements are {} and'
+                    ' the second elements are {}.'.format(a, b, c))
+            elif m >> '(x y z y x)':
+                print('This one is a palindrome!')
+            elif m >= list:
+                print("Well...it's a list! Beyond that I'm not sure...")
+            elif m == 'exactly this':
+                print('Exact matches work as well!')
+            else:
+                print('Failed matches are silent...')

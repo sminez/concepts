@@ -28,43 +28,54 @@ def pattern_match(target):
     del matcher
 
 
-def pattern_matching(func):
-    '''
-    Allow the programmer to define a function that pattern matches against
-    its arguments.
+# Experimental: Not currently working!
+# def pattern_matching(func):
+#     '''
+#     Allow the programmer to define a function that pattern matches against
+#     its arguments.
 
-    This will create a compound `match(arg)` context manager that the function
-    is then run inside. This supplies a Match_object for each named argument
-    to the original function bound to `_arg_name`.
-    NOTE: **kwargs will work and each keyword argument can be matched against
-          individually. *args is bound as a single match object of `_args` as
-          that is the only identifier we have to work with.
-          (If you prefer to use something like *spam then it will correctly
-           bind _spam instead.)
-    '''
-    func_sig = signature(func)
-    func_parms = func_sig.parameters.items()
-    starstar_kwargs = Parameter.VAR_KEYWORD
+#     This will create a compound `match(arg)` context manager that the function
+#     is then run inside. This supplies a Match_object for each named argument
+#     to the original function bound to `_arg_name`.
+#     NOTE: **kwargs will work and each keyword argument can be matched against
+#           individually. *args is bound as a single match object of `_args` as
+#           that is the only identifier we have to work with.
+#           (If you prefer to use something like *spam then it will correctly
+#            bind _spam instead.)
+#     '''
+#     func_sig = signature(func)
+#     func_parms = func_sig.parameters.items()
+#     starstar_kwargs = Parameter.VAR_KEYWORD
 
-    def make_manager(var):
-        '''Very simple helper to build the compound context manager'''
-        return 'pattern_match({v}) as _{v}'.format(v=var)
+#     def make_manager(var):
+#         '''Very simple helper to build the compound context manager'''
+#         return 'pattern_match({v}) as _{v}'.format(v=var)
 
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        manager_list = []
-        for name, param in func_parms:
-            if param._kind == starstar_kwargs:
-               for keyword_arg in kwargs:
-                   manager_list.append(make_manager(keyword_arg))
-            else:
-                manager_list.append(make_manager(name))
-        manager = 'with {}: func(*args, **kwargs)'.format(
-            ', '.join(manager_list)
-        )
-        exec(manager)
+#     @wraps(func)
+#     def wrapped(*args, **kwargs):
+#         manager_list = []
+#         matchers_list = []
 
-    return wrapped
+#         for name, param in func_parms:
+#             if param._kind == starstar_kwargs:
+#                for keyword_arg, val in kwargs.items():
+#                    manager_list.append(make_manager(keyword_arg))
+#                    matchers_list.append(keyword_arg)
+#             else:
+#                 manager_list.append(make_manager(name))
+#                 matchers_list.append(name)
+
+#         bindings = ['{}={}'.format(n[0], p) for n, p in zip(func_parms, args)]
+
+#         exec('\n{}'.join(bindings))
+
+#         manager = 'with {m}: func({a}, **kwargs)'.format(
+#             m=', '.join(manager_list),
+#             a=', '.join(bindings),
+#         )
+#         exec(manager)
+
+#     return wrapped
     
 
 def non_string_collection(x):

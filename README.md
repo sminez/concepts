@@ -4,7 +4,7 @@ Originally this was called **fmap** and was only an implementation of the `fmap`
 
 - [fmap](fmap_README.md): apply a function to all elements of a collection style object.
 - [pattern_match](pattern_match_README.md): A hybrid of Haskell's pattern matching and Clojure's destructuring.
-- [dispatch](dispatch_README.md): single and multiple dispatch for your Python functions.
+- [dispatch](pythfun/dispatch.py): single and multiple dispatch for your Python functions.
 
 Any suggestions for improvements are welcome and if you'd like to hack away and submit a pull request for a feature then raise an issue and let me know!
 

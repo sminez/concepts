@@ -49,30 +49,30 @@ The full rules are given below but the 10 second summary is as follows:
 
 
 #### Allowed values in a template and what they do
-    `(...):`   A template must start and stop with parens.
-               It may also include any number of nested sub-templates.
-    `<var>:`   Any valid python variable name is allowed.
-               These are the names that will be bound into the local scope
-               on the result of a successful match.
-    `*<var>:`  Any variable name that starts with a single * is marked as
-               being greedy. It will consume all remaining elements up to
-               a sub-template in the same way as Python's native tuple
-               unpacking.
-               NOTE: You can have a maximum of one greedy variable per
-                     template or sub-template.
+    (...):   A template must start and stop with parens.
+             It may also include any number of nested sub-templates.
+    <var>:   Any valid python variable name is allowed.
+             These are the names that will be bound into the local scope
+             on the result of a successful match.
+    *<var>:  Any variable name that starts with a single * is marked as
+             being greedy. It will consume all remaining elements up to
+             a sub-template in the same way as Python's native tuple
+             unpacking.
+             NOTE: You can have a maximum of one greedy variable per
+                   template or sub-template.
 
 #### Special values and their meanings
-    `_:`       Underscore is a special element in a pattern. It denotes a
-               required position in the template that must be filled but
-               the result of the match is not bound. You can have any number
-               of Underscores in a template.
-    `...:`     Ellipsis is only valid when following a sub-template. This
-               causes the sub-template to be repeated greedily to the end of
-               the template, combining successful matches in a list for each
-               variable.
-               i.e. `((a b) ...) >> [[1, 2], [3, 4], [5, 6]]`
-                    will give: `a = [1, 3, 5]`
-                               `b = [2, 4, 6]`
+    _:       Underscore is a special element in a pattern. It denotes a
+             required position in the template that must be filled but
+             the result of the match is not bound. You can have any number
+             of Underscores in a template.
+    ...:     Ellipsis is only valid when following a sub-template. This
+             causes the sub-template to be repeated greedily to the end of
+             the template, combining successful matches in a list for each
+             variable.
+             i.e. `((a b) ...) >> [[1, 2], [3, 4], [5, 6]]`
+                  will give: `a = [1, 3, 5]`
+                             `b = [2, 4, 6]`
 
 
 ## And now for an example!

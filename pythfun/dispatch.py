@@ -1,6 +1,6 @@
 '''
-Add simple single & multiple dispatch to Python.
-````````````````````````````````````````````````
+Adding simple single & multiple dispatch to Python.
+```````````````````````````````````````````````````
 
 Unlike functools.singledispatch, this will not work back through the MRO
 to find a matching superclass. Instead it will immediately resort to the
@@ -9,6 +9,7 @@ default implementation.
 NOTE:   *args and **kwargs are _not_ allowed in the signature of the
         function being defined.
 '''
+from functools import wraps
 
 
 def dispatch_on(index=0, func=None):
@@ -70,7 +71,8 @@ def dispatch_on(index=0, func=None):
 
         implementations[key] = func
         return func
-        
+
+    @wraps(func)
     def wrapped(*args, **kwargs):
         '''
         Attempt to use an implementation if there is one,

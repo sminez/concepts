@@ -1,7 +1,7 @@
 from types import GeneratorType
 from collections import Iterator
 
-from dispatch import dispatch_on, instance
+from .dispatch import dispatch_on, instance
 
 
 @dispatch_on(index=1)

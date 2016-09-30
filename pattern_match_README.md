@@ -104,4 +104,18 @@ for example in examples:
             print('Exact matches work as well!')
         else:
             print('Failed matches are silent...')
+
+
+>>> Trying to match, [1, 2, 3, 4, (5, 6), (7, 8), (9, 10)]
+>>> This example starts with [1, 2, 3, 4] and then has a list of pairs
+    where the first elements are [5, 7, 9] and the second elements are [6, 8, 10].
+>>> 
+>>> Trying to match, [1, 2, 3, 2, 1]
+>>> This one is a palindrome!
+>>> 
+>>> Trying to match, [1, 2, 3, 2, 42]
+>>> Well...it's a list! Beyond that I'm not sure...
+>>> 
+>>> Trying to match, exactly this
+>>> Exact matches work as well!
 ```

@@ -12,7 +12,7 @@ To quote the great Raymond:
 
 
 ### Enter pattern_match
-#### (A decorator version is coming soon!...Hopefully)
+#### (A working decorator version is coming soon!...Hopefully)
 You have a choice of using the `with patter_match(foo) as m: ...` context manager
 inside normal Python code or to decorate a function definition with the
 `@pattern_matching` decorator that allow you to match against all named parameters

@@ -87,7 +87,7 @@ fmap(times2, None)
 #### If you want to use a different data type (including your own user defined classes!) all you need to do is the following. We'll use a (very) simple binary tree class as our example:
 
 ```python
-from pythfun import fmap, fmap_for
+from concepts import fmap, fmap_for
 
 
 class Btree:
@@ -122,7 +122,7 @@ Or if you prefer using a function instead of a decorator (which also allows you 
 register pre-defined functions):
 
 ```python
-from fmap import fmap, instance
+from concepts import fmap, instance
 
 instance(fmap, _fmap_btree, Btree)
 ```

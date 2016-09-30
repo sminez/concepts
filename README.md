@@ -1,4 +1,5 @@
-## PythFun: LISP inspired functional programming concepts for Python
+# Concepts
+### LISP and Haskell inspired functional programming concepts for Python
 
 Originally this was called **fmap** and was only an implementation of the `fmap` function for Python3. Now that I've been tinkering around some more I thought it'd be nice to collect a few things together:
 
@@ -12,4 +13,4 @@ I hope you enjoy!
 
 
 #### NOTE:
-At the moment, there are no tests for this code and it has only been run on linux under Python 3.5. (I really should fix that...)
+At the moment, there are no tests for this code and it has only been run on linux under cPython 3.5. (I really should fix that...)

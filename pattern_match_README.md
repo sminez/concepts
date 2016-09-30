@@ -78,7 +78,7 @@ The full rules are given below but the 10 second summary is as follows:
 
 ## And now for an example!
 ```python
-from pythfun import pattern_match
+from concepts import pattern_match
 
 
 examples = [

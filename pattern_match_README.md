@@ -11,7 +11,7 @@ To quote the great Raymond:
     "There must be a better way!"
 
 
-### Enter `pattern_match` and `pattern_matching`
+### Enter pattern_match and pattern_matching
 You have a choice of using the `with patter_match(foo) as m: ...` context manager
 inside normal Python code or to decorate a function definition with the
 `@pattern_matching` decorator that allow you to match against all named parameters

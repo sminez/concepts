@@ -373,29 +373,3 @@ class Match_object:
             py_object(frame),
             c_int(0)
         )
-
-if __name__ == '__main__':
-    examples = [
-        [1, 2, 3, 4, (5, 6), (7, 8), (9, 10)],
-        [1, 2, 3, 2, 1],
-        [1, 2, 3, 2, 42],
-        'exactly this'
-    ]
-
-    for example in examples:
-        print('\nTrying to match, {}'.format(example))
-
-        with pattern_match(example) as m:
-            if m >> '(*a (b c) ...)':
-                print(
-                    'This example starts with {} and then has a list'
-                    ' of pairs where the first elements are {} and'
-                    ' the second elements are {}.'.format(a, b, c))
-            elif m >> '(x y z y x)':
-                print('This one is a palindrome!')
-            elif m >= list:
-                print("Well...it's a list! Beyond that I'm not sure...")
-            elif m == 'exactly this':
-                print('Exact matches work as well!')
-            else:
-                print('Failed matches are silent...')

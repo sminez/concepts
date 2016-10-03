@@ -1,8 +1,8 @@
 from sys import _getframe
 from functools import wraps
 from collections import Container
+from inspect import getfullargspec
 from contextlib import contextmanager
-from inspect import signature, Parameter
 from ctypes import c_int, pythonapi, py_object
 from itertools import chain, zip_longest, takewhile
 
@@ -34,46 +34,41 @@ def pattern_matching(func):
     Allow the programmer to define a function that pattern matches against
     its arguments.
 
-    This will create a compound `match(arg)` context manager that the function
-    is then run inside. This supplies a Match_object for each named argument
-    to the original function bound to `_arg_name`.
+    This supplies a Match_object for each named argument to the original
+    function bound to `_arg_name`.
     NOTE: **kwargs will work and each keyword argument can be matched against
           individually. *args is bound as a single match object of `_args` as
           that is the only identifier we have to work with.
           (If you prefer to use something like *spam then it will correctly
            bind _spam instead.)
     '''
-    func_sig = signature(func)
-    func_parms = func_sig.parameters.items()
-    starstar_kwargs = Parameter.VAR_KEYWORD
-
-    def make_manager(var):
-        '''Very simple helper to build the compound context manager'''
-        return 'pattern_match({v}) as _{v}'.format(v=var)
-
+    func_spec = getfullargspec(func)
+    tmp = 'pattern_match({val}) as _{var}'
+    
     @wraps(func)
     def wrapped(*args, **kwargs):
-        manager_list = []
-        matchers_list = []
+        '''
+        Bind all of the the Match object for use in this scope and
+        then run the function.
+        '''
+        # Bind the values of each argument here so that we can create the
+        # match objects.
+        mangr = []
+        for var, val in zip(func_spec.args, args):
+            mangr.append(tmp.format(val=val, var=var))
 
-        for name, param in func_parms:
-            if param._kind == starstar_kwargs:
-               for keyword_arg, val in kwargs.items():
-                   manager_list.append(make_manager(keyword_arg))
-                   matchers_list.append(keyword_arg)
-            else:
-                manager_list.append(make_manager(name))
-                matchers_list.append(name)
+        # Also create match objects for args and kwargs
+        if func_spec.varargs:
+            mangr.append(tmp.format(val='args', var=func_spec.varargs))
+        if func_spec.varkw:
+            for var, val in kwargs.items():
+                mangr.append(tmp.format(val=val, var=var))
 
-        bindings = ['{}={}'.format(n[0], p) for n, p in zip(func_parms, args)]
+        nonlocal func
 
-        exec('\n{}'.join(bindings))
-
-        manager = 'with {m}: func({a}, **kwargs)'.format(
-            m=', '.join(manager_list),
-            a=', '.join(bindings),
-        )
-        exec(manager)
+        # Call the original function and pass in the raw arguments only
+        exec('with ' + ', '.join(mangr) + ': result = func(*args, **kwargs)')
+        return result
 
     return wrapped
     
@@ -243,12 +238,13 @@ class Template:
         them back after expanding the greedy variable to fill the gap.
         '''
         cached = []
-        next_pvar, next_target = pairs.pop(0)
+        try:
+            next_pvar, next_target = pairs.pop(0)
+        except IndexError:
+            raise ValueError('FAILED MATCH')
 
-        while next_pvar is not None:
-            # Keep track of the other pvars in the pattern so
-            # they can be used later
-            if non_string_collection(next_target):
+        for _ in range(len(pairs)):
+            if next_pvar is None or non_string_collection(next_target):
                 break
             cached.append(next_pvar)
             self.check_match(pvar, next_target)
@@ -262,7 +258,10 @@ class Template:
         # --> match the last one from the while loop first
         self.check_match(pvar, next_target)
         rem = len(list(takewhile(non_string_collection, pairs)))
-        diff = len(pairs) - len(cached) * rem + 1
+        if rem:
+            v, t = pairs.pop(0)
+            self.check_match(pvar, t)
+        diff = len(pairs) - len(cached) * rem
         pvar.greedy_expanded = True
         left_over_pvars = diff * [pvar] + cached
         left_over_targets = [r[1] for r in pairs]
@@ -311,6 +310,13 @@ class Match_object:
     def __init__(self, val):
         self.val = val
         self.map = {}
+
+    def __getitem__(self, key):
+        '''
+        Provide dict style lookup on the match object for when we
+        run outside of cPython and binding to local scope might fail.
+        '''
+        return self.map[key]
         
     def __eq__(self, other):
         '''
@@ -368,7 +374,8 @@ class Match_object:
         '''
         Inject the result of a successful match into the calling scope.
         NOTE: This uses some not-so-nice abuse of stack frames and the
-              ctypes API to make this work...I'm sorry.
+              ctypes API to make this work and as such it will probably
+              not run under anything other than cPython.
         Stack Frames present when this function is run:
             0: this function
             1: self.__rshift__

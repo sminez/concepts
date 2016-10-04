@@ -1,5 +1,7 @@
+from copy import copy
 from sys import _getframe
 from functools import wraps
+from types import FunctionType
 from collections import Container
 from inspect import getfullargspec
 from contextlib import contextmanager
@@ -23,12 +25,11 @@ def pattern_match(target):
           frame using this context manager. The binding takes
           place at the point where a successful match is found.
     '''
-    matcher = Match_object(target)
+    matcher = Match_object(target, in_manager=True)
     yield matcher
     del matcher
 
 
-# Experimental: Not currently working!
 def pattern_matching(func):
     '''
     Allow the programmer to define a function that pattern matches against
@@ -37,41 +38,34 @@ def pattern_matching(func):
     This supplies a Match_object for each named argument to the original
     function bound to `_arg_name`.
     NOTE: **kwargs will work and each keyword argument can be matched against
-          individually. *args is bound as a single match object of `_args` as
-          that is the only identifier we have to work with.
+          individually or as a dict. *args is bound as a single match object of
+          `_args` as that is the only identifier we have to work with.
           (If you prefer to use something like *spam then it will correctly
            bind _spam instead.)
     '''
-    func_spec = getfullargspec(func)
-    tmp = 'pattern_match({val}) as _{var}'
-    
+    _code = func.__code__
+    # Shallow copy the function's globals so we can insert into it without modifying
+    # globals for the rest of the program.
+    # NOTE: Not confirmed but I think this will break use of nonlocal.
+    _globals = copy(func.__globals__)
+    spec = getfullargspec(func)
+
     @wraps(func)
     def wrapped(*args, **kwargs):
-        '''
-        Bind all of the the Match object for use in this scope and
-        then run the function.
-        '''
-        # Bind the values of each argument here so that we can create the
-        # match objects.
-        mangr = []
-        for var, val in zip(func_spec.args, args):
-            mangr.append(tmp.format(val=val, var=var))
-
-        # Also create match objects for args and kwargs
-        if func_spec.varargs:
-            mangr.append(tmp.format(val='args', var=func_spec.varargs))
-        if func_spec.varkw:
+        for var, val in zip(spec.args, args):
+            _globals['_{}'.format(var)] = Match_object(val, in_manager=False)
+        if spec.varargs:
+            _globals['_{}'.format(spec.varargs)] = Match_object(args, in_manager=False)
+        if spec.varkw:
             for var, val in kwargs.items():
-                mangr.append(tmp.format(val=val, var=var))
-
-        nonlocal func
-
-        # Call the original function and pass in the raw arguments only
-        exec('with ' + ', '.join(mangr) + ': result = func(*args, **kwargs)')
-        return result
+                _globals['_{}'.format(var)] = Match_object(val, in_manager=False)
+            _globals['_{}'.format(spec.varkw)] = Match_object(kwargs, in_manager=False)
+ 
+        func_w_matchers =  FunctionType(_code, _globals)
+        return func_w_matchers(*args, **kwargs)
 
     return wrapped
-    
+
 
 def non_string_collection(x):
     '''
@@ -307,8 +301,9 @@ class Template:
 
 
 class Match_object:
-    def __init__(self, val):
+    def __init__(self, val, in_manager=True):
         self.val = val
+        self.in_manager = in_manager
         self.map = {}
 
     def __getitem__(self, key):
@@ -376,13 +371,15 @@ class Match_object:
         NOTE: This uses some not-so-nice abuse of stack frames and the
               ctypes API to make this work and as such it will probably
               not run under anything other than cPython.
-        Stack Frames present when this function is run:
-            0: this function
-            1: self.__rshift__
-            2: the frame in which the user attempted the match
+        Whether or not the Match_object was built using the context
+        manager or the decorator will change which stack frame we need
+        dump the locals into.
         '''
         # Grab the stack frame that the caller's code is running in
-        frame = _getframe(2)
+        if self.in_manager:
+            frame = _getframe(2)
+        else:
+            frame = _getframe(4)
         # Dump the matched variables and their values into the frame
         for var, val in self.map.items():
             frame.f_locals[var] = val

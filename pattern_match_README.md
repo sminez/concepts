@@ -33,7 +33,7 @@ look at the source: this is _highly_ cPython specific so far but it should be po
 to extend this.
 
 ### Match objects are cool!
-You can use them as ofter as you want and they can be tested against types using 
+You can use them as ofter as you want and they can be tested against types using
 `>=` or against match templates using `>>`.
 - When you test using `>>`, a successful match will bind the variables used in the
   template into local scope so you can use them in the rest of your code!
@@ -119,17 +119,27 @@ for example in examples:
 >>> Trying to match, [1, 2, 3, 4, (5, 6), (7, 8), (9, 10)]
 >>> This example starts with [1, 2, 3, 4] and then has a list of pairs
     where the first elements are [5, 7, 9] and the second elements are [6, 8, 10].
->>> 
+>>>
 >>> Trying to match, [1, 2, 3, 2, 1]
 >>> This one is a palindrome!
->>> 
+>>>
 >>> Trying to match, [1, 2, 3, 2, 42]
 >>> Well...it's a list! Beyond that I'm not sure...
->>> 
+>>>
 >>> Trying to match, exactly this
 >>> Exact matches work as well!
 
 
 # Alternatively, use the @pattern_matching decorator to match on the arguments to
 # a function. This also gives you the pattern variables in local scope.
+
+from concepts import pattern_matching
+
+@pattern_matching
+def foo(a):
+    if _a >> '(x *y)':
+        print('y is ', y)
+
+foo([1, 2, 3, 4, 5])
+>>> y is [2, 3, 4, 5]
 ```

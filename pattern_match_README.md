@@ -11,8 +11,7 @@ To quote the great Raymond:
     "There must be a better way!"
 
 
-### Enter pattern_match
-#### (A working decorator version is coming soon!...Hopefully)
+### Enter 'with pattern_match' and '@pattern_matching'
 You have a choice of using the `with patter_match(foo) as m: ...` context manager
 inside normal Python code or to decorate a function definition with the
 `@pattern_matching` decorator that allow you to match against all named parameters
@@ -23,9 +22,18 @@ passed to the function by handling the setup of the multi-part with statement fo
   object that can be used for pattern matching!
   - When using the context manager, you get to set the name of the match object using
   the `as` clause of the context manager.
+#### A difference in Syntax
+When using their context manager, I have (so far) been unable to reliably bind new
+variables at runtime. As a result, accessing the results of a match is done using
+dict style lookup on the match object (see the example!).<br>
+If you use the decorator however, you can access any bound pattern variables
+as if they were defined where they are matched. (For details on how this works, have a
+look at the source: this is _highly_ cPython specific so far but it should be possible
+to extend this.
 
-Match objects are cool: you can use them as ofter as you want and they can be tested
-against types using `>=` or against match templates using `>>`.
+### Match objects are cool!
+You can use them as ofter as you want and they can be tested against types using 
+`>=` or against match templates using `>>`.
 - When you test using `>>`, a successful match will bind the variables used in the
   template into local scope so you can use them in the rest of your code!
 
@@ -78,7 +86,7 @@ The full rules are given below but the 10 second summary is as follows:
 
 ## And now for an example!
 ```python
-from concepts import pattern_match
+from concepts import pattern_match, pattern_matching
 
 
 examples = [
@@ -96,7 +104,7 @@ for example in examples:
             print(
                 'This example starts with {} and then has a list'
                 ' of pairs where the first elements are {} and'
-                ' the second elements are {}.'.format(a, b, c))
+                ' the second elements are {}.'.format(m['a'], m['b'], m['c']))
         elif m >> '(x y z y x)':
             print('This one is a palindrome!')
         elif m >= list:
@@ -119,4 +127,8 @@ for example in examples:
 >>> 
 >>> Trying to match, exactly this
 >>> Exact matches work as well!
+
+
+# Alternatively, use the @pattern_matching decorator to match on the arguments to
+# a function. This also gives you the pattern variables in local scope.
 ```

@@ -1,10 +1,10 @@
 from copy import copy
 from sys import _getframe
 from functools import wraps
-from types import FunctionType
 from collections import Container
 from inspect import getfullargspec
 from contextlib import contextmanager
+from types import CodeType, FunctionType
 from ctypes import c_int, pythonapi, py_object
 from itertools import chain, zip_longest, takewhile
 
@@ -25,7 +25,7 @@ def pattern_match(target):
           frame using this context manager. The binding takes
           place at the point where a successful match is found.
     '''
-    matcher = Match_object(target, in_manager=True)
+    matcher = Match_object(target)
     yield matcher
     del matcher
 
@@ -43,28 +43,94 @@ def pattern_matching(func):
           (If you prefer to use something like *spam then it will correctly
            bind _spam instead.)
     '''
-    _code = func.__code__
-    # Shallow copy the function's globals so we can insert into it without modifying
-    # globals for the rest of the program.
-    # NOTE: Not confirmed but I think this will break use of nonlocal.
-    _globals = copy(func.__globals__)
+    func = global_to_fast(func)
     spec = getfullargspec(func)
+    
+    def global_to_fast(func):
+        '''
+        Swap global lookups for local ones for pattern variables and
+        match objects. Only works in a decorated function.
+        '''
+        # cPython Bytecode values for easier readibility of the following code
+        HAS_ARGS, LOAD_GLOBAL, LOAD_FAST = 90, 116, 124
 
-    @wraps(func)
-    def wrapped(*args, **kwargs):
-        for var, val in zip(spec.args, args):
-            _globals['_{}'.format(var)] = Match_object(val, in_manager=False)
-        if spec.varargs:
-            _globals['_{}'.format(spec.varargs)] = Match_object(args, in_manager=False)
-        if spec.varkw:
-            for var, val in kwargs.items():
-                _globals['_{}'.format(var)] = Match_object(val, in_manager=False)
-            _globals['_{}'.format(spec.varkw)] = Match_object(kwargs, in_manager=False)
- 
-        func_w_matchers =  FunctionType(_code, _globals)
-        return func_w_matchers(*args, **kwargs)
+        code = func.__code__
+        old_ops = (opcode for opcode in code.co_code)
+        lvars = code.co_varnames
 
-    return wrapped
+        templates = [
+            c.replace('(', '').replace(')', '').split() for c in code.co_consts
+            if isinstance(c, str)
+            and (c[0], c[-1]) == ('(', ')')
+        ]
+        pvars = {p.lstrip('*') for p in sum(templates, [])}
+
+        new_ops = []
+        added = 0
+
+        for byte in old_ops:
+            if byte > HAS_ARGS:
+                # Opcodes > 90 take the next two bytes as args
+                lsig, msig = next(old_ops), next(old_ops)
+                op = byte
+
+                if byte == LOAD_GLOBAL:
+                    index = (msig << 8) + lsig
+                    var = code.co_names[index]
+                    # We want to swap matched variables: match objects are
+                    # already added to the by decorator
+                    if var in pvars:
+                        # Not removing the entry in co_names as that would
+                        # require modifying every other LOAD_GLOBAL index
+                        # for vars after this one in co_names...!
+                        op = LOAD_FAST
+                        lvars += (var,)
+                        added += 1
+                        lsig, msig = (len(lvars) - 1).to_bytes(2, 'little')
+                new_ops.extend([op, lsig, msig])
+            else:
+                new_ops.append(byte)
+
+        return modify_func(
+            func,
+            co_code=bytes(new_ops),
+            co_varnames=lvars,
+            co_nlocals=code.co_nlocals + added)
+
+    def modify_func(func, **kwds):
+        '''
+        Modifies elements of a function's __code__, retaining the
+        original values if no replacement is provided.
+        '''
+        old = func.__code__
+        attrs = ['co_argcount', 'co_kwonlyargcount', 'co_nlocals',
+                'co_stacksize', 'co_flags', 'co_code', 'co_consts',
+                'co_names', 'co_varnames', 'co_filename', 'co_name',
+                'co_firstlineno', 'co_lnotab', 'co_freevars', 'co_cellvars']
+        new = CodeType(*(kwds.get(a, getattr(old, attr)) for attr in attrs))
+        return FunctionType(new, func.__globals__, func.__name__,
+                            func.__defaults__, func.__closure__)
+        @wraps(func)
+        def wrapped(*args, **kwargs):
+            _globals = copy(func.__globals__)
+
+            for var, val in zip(spec.args, args):
+                v = '_{}'.format(var)
+                _globals[v] = Match_object(val, decorated=True)
+            if spec.varargs:
+                v = '_{}'.format(spec.varargs)
+                _globals[v] = Match_object(args, decorated=True)
+            if spec.varkw:
+                for var, val in kwargs.items():
+                    v = '_{}'.format(var)
+                    _globals[v] = Match_object(val, decorated=True)
+                v = '_{}'.format(spec.varkw)
+                _globals[v] = Match_object(kwargs, decorated=True)
+
+            func_w_matchers =  FunctionType(func.__code__, _globals)
+            return func_w_matchers(*args, **kwargs)
+
+        return wrapped
 
 
 def non_string_collection(x):
@@ -301,9 +367,9 @@ class Template:
 
 
 class Match_object:
-    def __init__(self, val, in_manager=True):
+    def __init__(self, val, decorated=False):
         self.val = val
-        self.in_manager = in_manager
+        self.decorated = decorated
         self.map = {}
 
     def __getitem__(self, key):
@@ -339,7 +405,8 @@ class Match_object:
         t = Template(pattern)
         if t == self.val:
             self.map = t.map
-            self._bind_to_calling_scope()
+            if self.decorated:
+                self._bind_to_calling_scope()
             return True
         else:
             return False
@@ -368,21 +435,16 @@ class Match_object:
     def _bind_to_calling_scope(self):
         '''
         Inject the result of a successful match into the calling scope.
+        This only works inside of a decorated function; use dict style
+        lookup syntax for use in a context manager.
         NOTE: This uses some not-so-nice abuse of stack frames and the
               ctypes API to make this work and as such it will probably
               not run under anything other than cPython.
-        Whether or not the Match_object was built using the context
-        manager or the decorator will change which stack frame we need
-        dump the locals into.
         '''
         # Grab the stack frame that the caller's code is running in
-        if self.in_manager:
-            frame = _getframe(2)
-        else:
-            frame = _getframe(4)
+        frame = _getframe(2)
         # Dump the matched variables and their values into the frame
-        for var, val in self.map.items():
-            frame.f_locals[var] = val
+        frame.f_locals.update(self.map)
         # Force an update of the frame locals from the locals dict
         pythonapi.PyFrame_LocalsToFast(
             py_object(frame),

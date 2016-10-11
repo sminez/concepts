@@ -403,6 +403,7 @@ class Match_object:
         '''
         tokens = pattern_str.replace('(', ' ( ').replace(')', ' ) ').split()
         pattern = next(self.parse(tokens))
+        print(pattern)
         t = Template(pattern)
         if t == self.val:
             self.map = t.map
@@ -410,6 +411,7 @@ class Match_object:
                 self._bind_to_calling_scope()
             return True
         else:
+            print(t.map)
             return False
 
     def parse(self, tokens):
@@ -429,7 +431,7 @@ class Match_object:
                         tokens = chain([t], tokens)
                         group.append(next(self.parse(tokens)))
                         t = next(tokens)
-                        yield tuple(group)
+                    yield tuple(group)
             else:
                 yield t
 

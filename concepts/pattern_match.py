@@ -45,7 +45,7 @@ def pattern_matching(func):
     '''
     func = global_to_fast(func)
     spec = getfullargspec(func)
-    
+
     def global_to_fast(func):
         '''
         Swap global lookups for local ones for pattern variables and

@@ -22,6 +22,7 @@ passed to the function by handling the setup of the multi-part with statement fo
   object that can be used for pattern matching!
   - When using the context manager, you get to set the name of the match object using
   the `as` clause of the context manager.
+
 #### A difference in Syntax
 When using their context manager, I have (so far) been unable to reliably bind new
 variables at runtime. As a result, accessing the results of a match is done using

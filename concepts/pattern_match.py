@@ -43,9 +43,6 @@ def pattern_matching(func):
           (If you prefer to use something like *spam then it will correctly
            bind _spam instead.)
     '''
-    func = global_to_fast(func)
-    spec = getfullargspec(func)
-
     def global_to_fast(func):
         '''
         Swap global lookups for local ones for pattern variables and
@@ -104,33 +101,37 @@ def pattern_matching(func):
         '''
         old = func.__code__
         attrs = ['co_argcount', 'co_kwonlyargcount', 'co_nlocals',
-                'co_stacksize', 'co_flags', 'co_code', 'co_consts',
-                'co_names', 'co_varnames', 'co_filename', 'co_name',
-                'co_firstlineno', 'co_lnotab', 'co_freevars', 'co_cellvars']
-        new = CodeType(*(kwds.get(a, getattr(old, attr)) for attr in attrs))
+                 'co_stacksize', 'co_flags', 'co_code', 'co_consts',
+                 'co_names', 'co_varnames', 'co_filename', 'co_name',
+                 'co_firstlineno', 'co_lnotab', 'co_freevars', 'co_cellvars']
+        new = CodeType(*(kwds.get(attr, getattr(old, attr)) for attr in attrs))
         return FunctionType(new, func.__globals__, func.__name__,
                             func.__defaults__, func.__closure__)
-        @wraps(func)
-        def wrapped(*args, **kwargs):
-            _globals = copy(func.__globals__)
 
-            for var, val in zip(spec.args, args):
+    func = global_to_fast(func)
+    spec = getfullargspec(func)
+
+    @wraps(func)
+    def wrapped(*args, **kwargs):
+        _globals = copy(func.__globals__)
+
+        for var, val in zip(spec.args, args):
+            v = '_{}'.format(var)
+            _globals[v] = Match_object(val, decorated=True)
+        if spec.varargs:
+            v = '_{}'.format(spec.varargs)
+            _globals[v] = Match_object(args, decorated=True)
+        if spec.varkw:
+            for var, val in kwargs.items():
                 v = '_{}'.format(var)
                 _globals[v] = Match_object(val, decorated=True)
-            if spec.varargs:
-                v = '_{}'.format(spec.varargs)
-                _globals[v] = Match_object(args, decorated=True)
-            if spec.varkw:
-                for var, val in kwargs.items():
-                    v = '_{}'.format(var)
-                    _globals[v] = Match_object(val, decorated=True)
-                v = '_{}'.format(spec.varkw)
-                _globals[v] = Match_object(kwargs, decorated=True)
+            v = '_{}'.format(spec.varkw)
+            _globals[v] = Match_object(kwargs, decorated=True)
 
-            func_w_matchers =  FunctionType(func.__code__, _globals)
-            return func_w_matchers(*args, **kwargs)
+        func_w_matchers = FunctionType(func.__code__, _globals)
+        return func_w_matchers(*args, **kwargs)
 
-        return wrapped
+    return wrapped
 
 
 def non_string_collection(x):
@@ -378,7 +379,7 @@ class Match_object:
         run outside of cPython and binding to local scope might fail.
         '''
         return self.map[key]
-        
+
     def __eq__(self, other):
         '''
         Allow for simple direct comparison against values
@@ -418,19 +419,19 @@ class Match_object:
         '''
         tokens = iter(tokens)
         for t in tokens:
-           if t == '(':
-               group = []
-               t = next(tokens)
-               if t == ')':
-                   raise SyntaxError('Empty match template')
-               else:
-                   while t != ')':
-                       tokens = chain([t], tokens)
-                       group.append(next(self.parse(tokens)))
-                       t = next(tokens)
-                   yield tuple(group)
-           else:
-               yield t
+            if t == '(':
+                group = []
+                t = next(tokens)
+                if t == ')':
+                    raise SyntaxError('Empty match template')
+                else:
+                    while t != ')':
+                        tokens = chain([t], tokens)
+                        group.append(next(self.parse(tokens)))
+                        t = next(tokens)
+                        yield tuple(group)
+            else:
+                yield t
 
     def _bind_to_calling_scope(self):
         '''

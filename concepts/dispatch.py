@@ -40,7 +40,6 @@ def dispatch_on(index=0, func=None):
     if index == 'all':
         multi = True
         # Horrible but correct so long as func does not use *args or **kwargs
-        # and for a multiple dispatch function that would be problematic anyway.
         key_len = func.__code__.co_argcount
     elif type(index) == tuple:
         multi = True
@@ -51,7 +50,7 @@ def dispatch_on(index=0, func=None):
     def add(key, func=None):
         '''
         Add an implementation of func for the given key. The form of key
-        must match the form given for key_on above.
+        must match the form given for index above.
         '''
         # Same hack as before
         if func is None:
@@ -79,8 +78,8 @@ def dispatch_on(index=0, func=None):
         otherwise use the default.
         '''
         if multi:
-            if key_on == 'all':
-                dispatch_key = args
+            if index == 'all':
+                dispatch_key = tuple([type(a) for a in args])
             else:
                 dispatch_key = tuple(args[i] for i in index)
         else:
@@ -98,7 +97,7 @@ def instance(func, implementation, arg_type):
     '''
     Register a function as the implementation of func for a given type.
     i.e instance(fmap, _fmap_my_type, my_type)
-    
+
     This is an alternative to explicitly wrapping the function definition
     in question with @func.add(arg_type) to allow run-time registration
     and registration of pre-defined functions.
@@ -106,4 +105,6 @@ def instance(func, implementation, arg_type):
     if 'dispatch' in dir(func):
         func.add(arg_type, implementation)
     else:
-        raise TypeError('{} has not been decorated with `dispatch_on`.'.format(func))
+        raise TypeError(
+            '{} has not been decorated with `dispatch_on`.'.format(func)
+        )

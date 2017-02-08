@@ -75,7 +75,7 @@ def dispatch_on(index=0, func=None):
         '''
         if multi:
             if index == 'all':
-                dispatch_key = tuple([type(a) for a in args])
+                dispatch_key = tuple(type(a) for a in args)
             else:
                 dispatch_key = tuple(type(args[i]) for i in index)
         else:

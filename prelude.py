@@ -272,38 +272,39 @@ def iflatten(lst):
         yield element
 
 
-def iwindowed(size, col):
+def windowed(iterable, n):
     '''
-    Yield a sliding series of iterables of length _size_ from a collection.
-
-    NOTE:
-    - If the collection is a generator it will be drained by this
-    - yields [] if the supplied collection has less than _size_ elements
-    - keeps _size_ elements in memory at all times
+    Take successive n-tuples from an iterable using a sliding window
     '''
-    remaining = iter(col)
-    current_slice = list(take(size, remaining))
+    # Take n copies of the iterable
+    iterables = tee(iterable, n)
 
-    if len(current_slice) < size:
-        raise StopIteration
-    else:
-        while True:
-            yield (elem for elem in current_slice)
-            next_element = next(remaining)
-            if next_element:
-                # Slide the window
-                current_slice = current_slice[1:] + [next_element]
-            else:
-                # We've reached the end so return
-                break
+    # Advance each to the correct starting position
+    for step, it in enumerate(iterables):
+        for s in range(step):
+            next(it)
+
+    # Zip the modified iterables and build a list of the result
+    # NOTE: not using zip longest as we want to stop when we reach the end
+    return list(zip(*iterables))
 
 
-def windowed(size, col):
+def iwindowed(iterable, n):
     '''
-    A version of windowed that yields lists rather than generators
+    Take successive n-tuples from an iterable using a sliding window
     '''
-    for w in windowed(size, col):
-        yield [elem for elem in w]
+    # Take n copies of the iterable
+    iterables = tee(iterable, n)
+
+    # Advance each to the correct starting position
+    for step, it in enumerate(iterables):
+        for s in range(step):
+            next(it)
+
+    # Zip the modified iterables and yield the elements as a genreator
+    # NOTE: not using zip longest as we want to stop when we reach the end
+    for t in zip(*iterables):
+        yield t
 
 
 def chunked(iterable, n, fillvalue=None):

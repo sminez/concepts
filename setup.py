@@ -9,8 +9,8 @@ setup(
     author="Innes Anderson-Morrison",
     author_email='innesdmorrison@gmail.com',
     install_requires=[],
-    package_dir={'concepts': 'concepts'},
-    packages=find_packages(),
+    package_dir={'concepts': '.'},
+    packages=['concepts'],
     classifiers=[
         'Programming Language :: Python :: 3',
         'Development Status :: 4 - Beta'

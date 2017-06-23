@@ -11,7 +11,7 @@ import functools as ftools
 import operator as op
 
 # Bring in functionality from the other modules
-from fmap import fmap
+from .fmap import fmap
 
 
 #############################################################

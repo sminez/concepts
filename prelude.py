@@ -5,9 +5,13 @@ inspired by the likes of Clojure, Haskell and LISP.
 NOTE: There is a naming convension of i<func_name> returning an
 iterator and <func_name> returning a collection.
 '''
+from collections import Container
 import itertools as itools
 import functools as ftools
 import operator as op
+
+# Bring in functionality from the other modules
+from fmap import fmap
 
 
 #############################################################
@@ -25,6 +29,8 @@ repeat = itools.repeat
 chain = itools.chain
 tee = itools.tee
 
+# Functional built-ins also include:
+# map filter lambda
 reduce = ftools.reduce
 partial = ftools.partial
 
@@ -33,6 +39,19 @@ sub = op.sub
 mul = op.mul
 div = op.truediv
 floordiv = op.floordiv
+
+
+####################
+# Helper functions #
+####################
+def iscollection(x):
+    '''
+    Allow distinguishing between string types and "true" containers
+    '''
+    if isinstance(x, Container):
+        if not isinstance(x, (str, bytes)):
+            return True
+    return False
 
 
 ##########################
@@ -209,7 +228,7 @@ def scanl(col, func=add, acc=None):
 def iscanl(col, func=add, acc=None):
     '''
     Fold a collection from the left using a binary function
-    and an accumulator into a list of values
+    and an accumulator into a stream of values
     '''
     if acc is not None:
         col = chain([acc], col)
@@ -238,7 +257,7 @@ def scanr(col, func=add, acc=None):
 
 def iscanr(col, func=add, acc=None):
     '''
-    Use a given accumulator value to build a list of values obtained
+    Use a given accumulator value to build a stream of values obtained
     by repeatedly applying acc = func(next(list), acc) from the right.
 
     WARNING: Right folds and scans will blow up for infinite generators!
@@ -252,23 +271,6 @@ def iscanr(col, func=add, acc=None):
         col = chain([acc], col)
 
     for element in itools.accumulate(col, func):
-        yield element
-
-
-def flatten(lst):
-    '''
-    Flatten an arbitrarily nested list of lists into a single list
-    '''
-    _list = ([x] if not isinstance(x, list) else flatten(x) for x in lst)
-    return [element for element in sum(_list, [])]
-
-
-def iflatten(lst):
-    '''
-    Flatten an arbitrarily nested list of lists into a single stream
-    '''
-    _list = ([x] if not isinstance(x, list) else flatten(x) for x in lst)
-    for element in sum(_list, []):
         yield element
 
 
@@ -325,3 +327,36 @@ def ichunked(iterable, n, fillvalue=None):
 
     for chunk in chunks:
         yield chunk
+
+
+def cmap(func, col):
+    '''
+    Concat-Map: map a function that takes a value and returns a list over an
+    iterable and concatenate the results
+    '''
+    return foldl(map(func, col))
+
+
+def flatten(col):
+    '''
+    Flatten an arbitrarily nested list of lists into a single list.
+    '''
+    if not iscollection(col):
+        return [col]
+    else:
+        return cmap(flatten, col)
+
+
+def iflatten(col):
+    '''
+    Flatten an arbitrarily nested list of lists into an iterator of
+    single values.
+    '''
+    if not iscollection(col):
+        yield col
+    else:
+        for sub_col in col:
+            if not iscollection(col):
+                yield col
+            else:
+                yield from iflatten(sub_col)

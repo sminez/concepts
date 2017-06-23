@@ -1,7 +1,7 @@
 from types import GeneratorType
 from collections import Iterator
 
-from .dispatch import dispatch_on, instance
+from concepts.dispatch import dispatch_on
 
 
 @dispatch_on(index=1)
@@ -10,7 +10,7 @@ def fmap(func, col):
     Map a function over the elements of a container.
     If no specific implementation is found for the supplied type then
     a TypeError is raised along with a description of how to add a case.
-   
+
     NOTE: As with normal _map_, _func_ must be a function that takes
           a single argument. (Dictionaries are a special case, see below)
 
@@ -23,10 +23,11 @@ def fmap(func, col):
     - For dictionaries there are two ways to use fmap:
         fmap(func, dict)           map over the _values_
         fmap(on_keys(func), dict)  map over the _keys_
-        fmap(func, dict)           map over both if func accepts and returns two values
+        fmap(func, dict)           map over both if func accepts and returns
+                                   two values
     '''
-    # Allow raw iterators to be mapped over and return an iterator here as there
-    # is no single `iterator` type to check against.
+    # Allow raw iterators to be mapped over and return an iterator here as
+    # there is no single `iterator` type to check against.
     if isinstance(col, Iterator):
         for element in col:
             yield func(element)

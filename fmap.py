@@ -1,5 +1,6 @@
 from types import GeneratorType
-from collections import Iterator
+from collections import Iterator, deque, defaultdict, \
+        Counter, OrderedDict, ChainMap
 
 from .dispatch import dispatch_on
 
@@ -67,7 +68,7 @@ def _fmap_none(func, n):
     return None
 
 
-@fmap_for(type(range(42)))
+@fmap_for(range)
 @fmap_for(GeneratorType)
 def _fmap_lazy_seq(func, s):
     for element in s:
@@ -76,17 +77,17 @@ def _fmap_lazy_seq(func, s):
 
 @fmap_for(list)
 def _fmap_list(func, l):
-    return [func(element) for element in l]
+    return list(map(func, l))
 
 
 @fmap_for(tuple)
 def _fmap_tuple(func, t):
-    return tuple((func(element) for element in t))
+    return tuple(map(func, t))
 
 
 @fmap_for(set)
 def _fmap_set(func, s):
-    return {func(element) for element in s}
+    return set(map(func, s))
 
 
 @fmap_for(dict)
@@ -106,14 +107,60 @@ def _fmap_dict(func, d):
 
 @fmap_for(str)
 def _fmap_str(func, s):
-    return ''.join((func(char) for char in s))
+    return ''.join(map(func, s))
 
 
 @fmap_for(bytes)
 def _fmap_bytes(func, b):
-    return bytes((func(element) for element in b))
+    return bytes(map(func, b))
 
 
 @fmap_for(bytearray)
 def _fmap_bytearray(func, b):
-    return bytearray((func(element) for element in b))
+    return bytearray(map(func, b))
+
+
+# Implementations for the collections module
+@fmap_for(deque)
+def _fmap_deque(func, d):
+    return deque(map(func, d))
+
+
+@fmap_for(Counter)
+def _fmap_counter(func, c):
+    if func.__code__.co_argcount == 1:
+        func = on_values(func)
+
+    fmapped = (func(k, v) for k, v in c.items())
+    return Counter({k: v for k, v in fmapped})
+
+
+@fmap_for(OrderedDict)
+def _fmap_ordered_dict(func, o):
+    if func.__code__.co_argcount == 1:
+        func = on_values(func)
+
+    fmapped = (func(k, v) for k, v in o.items())
+    return OrderedDict(fmapped)
+
+
+@fmap_for(ChainMap)
+def _fmap_chain_map(func, c):
+    if func.__code__.co_argcount == 1:
+        func = on_values(func)
+
+    fmapped = []
+    for m in c.maps:
+        fmapped.append(dict(func(k, v) for k, v in c.items()))
+    return ChainMap(fmapped)
+
+
+@fmap_for(defaultdict)
+def _fmap_default_dict(func, d):
+    if func.__code__.co_argcount == 1:
+        func = on_values(func)
+
+    fmapped = (func(k, v) for k, v in d.items())
+    new_d = defaultdict(d.default_factory)
+    new_d.update(fmapped)
+    return new_d

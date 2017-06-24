@@ -20,8 +20,8 @@ from .fmap import fmap
 combs_wr = itools.combinations_with_replacement
 combs = itools.combinations
 perms = itools.permutations
-takewhile = itools.takewhile
-dropwhile = itools.dropwhile
+itakewhile = itools.takewhile
+idropwhile = itools.dropwhile
 groupby = itools.groupby
 cprod = itools.product
 mask = itools.compress  # compress is a terrible name for this!
@@ -169,6 +169,22 @@ def take(n, col):
     Return the up to the first n items from a generator
     '''
     return list(itools.islice(col, n))
+
+
+def takewhile(predicate, col):
+    '''
+    Take elements from a collection while the predicate holds.
+    Return a list of those elements
+    '''
+    return list(itakewhile(predicate, col))
+
+
+def dropwhile(predicate, col):
+    '''
+    Drop elements from a collection while the predicate holds.
+    Return a list of those elements that are left
+    '''
+    return list(idropwhile(predicate, col))
 
 
 def itake(n, col):

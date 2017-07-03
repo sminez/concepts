@@ -8,9 +8,11 @@ iterator and <func_name> returning a collection.
 from collections import Container
 import itertools as itools
 import functools as ftools
+from copy import deepcopy
 import operator as op
 
 # Bring in functionality from the other modules
+from .dispatch import dispatch_on
 from .fmap import fmap
 
 
@@ -32,7 +34,9 @@ tee = itools.tee
 # Functional built-ins also include:
 # map filter lambda
 reduce = ftools.reduce
-partial = ftools.partial
+# NOTE: having a shorter name for partial makes it a lot nicer
+#       to work with in nested function calls.
+partial = fn = ftools.partial
 
 add = op.add
 sub = op.sub
@@ -40,11 +44,21 @@ mul = op.mul
 div = op.truediv
 floordiv = op.floordiv
 
+# Flipping the argument order for comparisons because:
+#   1) easier currying/partial application
+#   2) as a function call it reads better as lt(x, y) == "is x less than y?"
+lt = lambda a, b: op.lt(b, a)
+le = lambda a, b: op.le(b, a)
+gt = lambda a, b: op.gt(b, a)
+ge = lambda a, b: op.ge(b, a)
+eq = op.eq
+neq = op.ne
+
 
 ####################
 # Helper functions #
 ####################
-def iscollection(x):
+def iscol(x):
     '''
     Allow distinguishing between string types and "true" containers
     '''
@@ -57,7 +71,6 @@ def iscollection(x):
 ##########################
 # Higher order functions #
 ##########################
-# TODO: Improve __doc__ and related helper functionality for these!
 def zipwith(func):
     '''
     Returns a function that will combine elements of a zip using func.
@@ -95,6 +108,24 @@ def compose(f, g):
     composition.__doc__ = doc.format(fname, gname, fname, fdoc, gname, gdoc)
 
     return composition
+
+
+def flip(func):
+    '''Flip the arguments to a binary operation'''
+    if getattr(func, '_before_flip', None):
+        # Don't nest function calls for flip(flip(func))
+        return func._before_flip
+
+    def flipped(a, b):
+        return func(b, a)
+
+    flipped._before_flip = func
+    return flipped
+
+
+def revargs(func):
+    '''reverse the positional argument order of a function'''
+    pass
 
 
 ################################################
@@ -171,6 +202,14 @@ def take(n, col):
     return list(itools.islice(col, n))
 
 
+def itake(n, col):
+    '''
+    Return the up to the first n items from a generator
+    '''
+    for element in itools.islice(col, n):
+        yield element
+
+
 def takewhile(predicate, col):
     '''
     Take elements from a collection while the predicate holds.
@@ -185,14 +224,6 @@ def dropwhile(predicate, col):
     Return a list of those elements that are left
     '''
     return list(idropwhile(predicate, col))
-
-
-def itake(n, col):
-    '''
-    Return the up to the first n items from a generator
-    '''
-    for element in itools.islice(col, n):
-        yield element
 
 
 def drop(n, col):
@@ -357,7 +388,7 @@ def flatten(col):
     '''
     Flatten an arbitrarily nested list of lists into a single list.
     '''
-    if not iscollection(col):
+    if not iscol(col):
         return [col]
     else:
         return cmap(flatten, col)
@@ -368,11 +399,39 @@ def iflatten(col):
     Flatten an arbitrarily nested list of lists into an iterator of
     single values.
     '''
-    if not iscollection(col):
+    if not iscol(col):
         yield col
     else:
         for sub_col in col:
-            if not iscollection(col):
+            if not iscol(col):
                 yield col
             else:
                 yield from iflatten(sub_col)
+
+
+#################################
+# Overloaded dispatch functions #
+#################################
+@dispatch_on(index=1)
+def conj(head, tail):
+    '''
+    Prepend an element to a collection, returning a new copy
+    Exact behaviour will differ depending on the collection
+    '''
+    tail_type = type(tail)
+    return op.concat(tail_type([head]), tail)
+
+
+@conj.add(dict)
+def _conj_dict(head, tail):
+    k, v = head  # Allow exception to raise here if this doesn't work
+    new = deepcopy(tail)
+    new.update({k: v})
+    return new
+
+
+@conj.add(set)
+def _conj_set(head, tail):
+    new = deepcopy(tail)
+    new.update({head})
+    return new

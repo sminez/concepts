@@ -386,15 +386,15 @@ class Match_object:
         '''
         return self.val == other
 
-    def __ge__(self, type_or_types):
+    def __rshift__(self, type_or_types):
         '''
-        `match >= TYPE` perfoms a type check on the bound value
-        `match >= (TYPE1, TYPE2...)` returns true if match.val is an
+        `match >> TYPE` perfoms a type check on the bound value
+        `match >> (TYPE1, TYPE2...)` returns true if match.val is an
         instance of any of the supplied types.
         '''
         return isinstance(self.val, type_or_types)
 
-    def __rshift__(self, pattern_str):
+    def __ge__(self, pattern_str):
         '''
         Check the supplied pattern against the bound value from the
         context manager. If it matches, bind the pattern variables to
